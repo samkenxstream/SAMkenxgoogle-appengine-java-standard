@@ -40,8 +40,18 @@ public class JavaRuntimeMain {
   private static final Logger logger = Logger.getLogger(JavaRuntimeMain.class.getName());
   private static final String PROPERTIES_LOCATION = "WEB-INF/appengine_optional.properties";
 
-  /** This property will be used in ClassPathUtils processing to determine the correct classpath. */
+  /**
+   * This property will be used in ClassPathUtils processing to determine the correct classpath.
+   * Property must now be true for the Java8 runtime, and is ignored for Java11/17 runtimes which
+   * can only use maven jars.
+   */
   private static final String USE_MAVEN_JARS = "use.mavenjars";
+
+  /**
+   * This property will be used to enable/disable Annotation Scanning when quickstart-web.xml is not
+   * present.
+   */
+  private static final String USE_ANNOTATION_SCANNING = "use.annotationscanning";
 
   /** Disable logging in ApiProxy */
   private static final String DISABLE_API_CALL_LOGGING_IN_APIPROXY =
@@ -98,6 +108,7 @@ public class JavaRuntimeMain {
    * @return the flag value, if found, otherwise null
    */
   /* @VisibleForTesting */
+  @SuppressWarnings("ReturnMissingNullable")
   String getFlag(String[] args, String flagName, String warningMsgIfAbsent) {
     String target = "--" + flagName;
     for (int i = 0; i < args.length; i++) {
@@ -138,7 +149,8 @@ public class JavaRuntimeMain {
         new String[] {
           USE_MAVEN_JARS,
           DISABLE_API_CALL_LOGGING_IN_APIPROXY,
-          ALLOW_NON_RESIDENT_SESSION_ACCESS
+          ALLOW_NON_RESIDENT_SESSION_ACCESS,
+          USE_ANNOTATION_SCANNING
         }) {
       if ("true".equalsIgnoreCase(optionalProperties.getProperty(flag))) {
         System.setProperty(flag, "true");

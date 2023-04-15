@@ -221,7 +221,8 @@ public final class ProberApp extends HttpServlet {
     // request not already specified to a servlet, but since our prober configuration makes that
     // difficult to change, we need this safeguard to prevent and infinite loop since this servlet
     // calls itself multiple times.
-    if (request.getRequestURL().toString().contains("favicon.ico")) {
+    if (!request.getServletPath().equals("/")) {
+      logger.log(Level.SEVERE, "Ignoring servlet request for:" + request.getServletPath());
       return;
     }
     response.setContentType("text/plain");
@@ -1137,9 +1138,10 @@ public final class ProberApp extends HttpServlet {
     HttpResponse response =
         uploadFileToUrl(
             UPLOAD_NAME, "WEB-INF/image.jpg", blobstoreService.createUploadUrl("/blob"));
+    logger.log(Level.INFO, "testBlobstore blobstore response=" + response);
     if (response.getStatusLine().getStatusCode() == 503) {
       // Sometimes the upload service is not available.
-      logger.log(Level.INFO, "error 503 not available testBlobstore response=" + response);
+      logger.log(Level.INFO, "blobstore upload service is not available - continuing.");
     } else {
       Header[] headers = response.getHeaders(BLOBKEY_HEADER);
       assertThat(headers).hasLength(1);

@@ -43,12 +43,12 @@ top of your web application and change the entrypoint to boot with these jars in
  mvn clean install
 ```
 
-Let's assume the current built version is `2.0.6-SNAPSHOT`.
+Let's assume the current built version is `2.0.14-SNAPSHOT`.
 Add the dependency for the GAE runtime jars in your application pom.xml file:
 
 ```
  <properties>
-        <appengine.runtime.version>2.0.6-SNAPSHOT</appengine.runtime.version>
+        <appengine.runtime.version>2.0.14-SNAPSHOT</appengine.runtime.version>
         <appengine.runtime.location>${appengine.runtime.location}</appengine.runtime.location>
  <properties>
  ...
@@ -60,7 +60,8 @@ Add the dependency for the GAE runtime jars in your application pom.xml file:
 </dependency>
 ```
 
-And in the pom.xml plugin section, copy the runtime jars at the top of the deployed web application.
+And in the pom.xml plugin section, copy the runtime jars at the top of the
+deployed web application.
 
 ```
 <plugin>
@@ -110,6 +111,8 @@ In the appengine-web.xml, modify the entrypoint to use the bundled runtime jars 
   java
   --add-opens java.base/java.lang=ALL-UNNAMED
   --add-opens java.base/java.nio.charset=ALL-UNNAMED
+  --add-opens java.base/java.util.concurrent=ALL-UNNAMED
+  --add-opens java.logging/java.util.logging=ALL-UNNAMED
   -showversion -XX:+PrintCommandLineFlags
   -Djava.class.path=runtime-main.jar
   -Dclasspath.runtimebase=.:

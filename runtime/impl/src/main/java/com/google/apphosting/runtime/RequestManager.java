@@ -69,19 +69,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 
 /**
- * {@code RequestManager} is responsible for setting up and tearing
- * down any state associated with each request.
+ * {@code RequestManager} is responsible for setting up and tearing down any state associated with
+ * each request.
  *
- * At the moment, this includes:
+ * <p>At the moment, this includes:
+ *
  * <ul>
- *  <li>Injecting an {@code Environment} implementation for the
- *  request's thread into {@code ApiProxy}.
- *  <li>Scheduling any future actions that must occur while the
- *  request is executing (e.g. deadline exceptions), and cleaning up
- *  any scheduled actions that do not occur.
+ *   <li>Injecting an {@code Environment} implementation for the request's thread into {@code
+ *       ApiProxy}.
+ *   <li>Scheduling any future actions that must occur while the request is executing (e.g. deadline
+ *       exceptions), and cleaning up any scheduled actions that do not occur.
  * </ul>
  *
  * It is expected that clients will use it like this:
+ *
  * <pre>
  * RequestManager.RequestToken token =
  *     requestManager.startRequest(...);
@@ -91,9 +92,8 @@ import javax.annotation.Nullable;
  *   requestManager.finishRequest(token);
  * }
  * </pre>
- *
  */
-public class RequestManager {
+public class RequestManager implements RequestThreadManager {
   private static final GoogleLogger logger = GoogleLogger.forEnclosingClass();
 
   /**
@@ -349,7 +349,6 @@ public class RequestManager {
             rpc,
             rpc.getStartTimeMillis(),
             traceWriter,
-            requestThreadGroup,
             state,
             endAction);
 
@@ -501,14 +500,15 @@ public class RequestManager {
   // So at least for the time being we can still achieve the effect of Thread.stop(Throwable) by
   // calling the JNI method. That means we don't get the permission checks and so on that come
   // with Thread.stop, but the code that's calling it is privileged anyway.
-  private static final Method threadStop0;
-
-  static {
-    try {
-      threadStop0 = Thread.class.getDeclaredMethod("stop0", Object.class);
-      threadStop0.setAccessible(true);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
+  private static class ThreadStop0Holder {
+   private static final Method threadStop0;
+    static {
+      try {
+        threadStop0 = Thread.class.getDeclaredMethod("stop0", Object.class);
+        threadStop0.setAccessible(true);
+      } catch (NoSuchMethodException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -612,7 +612,7 @@ public class RequestManager {
         AccessController.doPrivileged(
             (PrivilegedAction<Void>) () -> {
               try {
-                threadStop0.invoke(targetThread, throwable);
+                ThreadStop0Holder.threadStop0.invoke(targetThread, throwable);
               } catch (Exception e) {
                 logger.atWarning().withCause(e).log("Failed to stop thread");
               }
@@ -929,7 +929,8 @@ public class RequestManager {
     response.setHttpResponseCodeAndResponse(200, "OK");
   }
 
-  List<Thread> getRequestThreads(AppVersionKey appVersionKey) {
+  @Override
+  public List<Thread> getRequestThreads(AppVersionKey appVersionKey) {
     List<Thread> threads = new ArrayList<Thread>();
     synchronized (requests) {
       for (RequestToken token : requests.values()) {
@@ -1054,7 +1055,6 @@ public class RequestManager {
 
     private final AnyRpcServerContext rpc;
     private final long startTimeMillis;
-    private final ThreadGroup requestThreadGroup;
 
     private final RequestState state;
 
@@ -1072,7 +1072,6 @@ public class RequestManager {
         AnyRpcServerContext rpc,
         long startTimeMillis,
         @Nullable TraceWriter traceWriter,
-        ThreadGroup requestThreadGroup,
         RequestState state,
         Runnable endAction) {
       this.requestThread = requestThread;
@@ -1088,7 +1087,6 @@ public class RequestManager {
       this.rpc = rpc;
       this.startTimeMillis = startTimeMillis;
       this.traceWriter = traceWriter;
-      this.requestThreadGroup = requestThreadGroup;
       this.state = state;
       this.endAction = endAction;
     }
@@ -1171,10 +1169,6 @@ public class RequestManager {
       upResponse.setError(UPResponse.ERROR.LOG_FATAL_DEATH_VALUE);
       upResponse.setErrorMessage(errorMessage);
       rpc.finishWithResponse(upResponse.build());
-    }
-
-    ThreadGroup getRequestThreadGroup() {
-      return requestThreadGroup;
     }
 
     void runEndAction() {

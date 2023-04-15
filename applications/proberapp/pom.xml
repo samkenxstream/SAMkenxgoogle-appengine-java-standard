@@ -27,12 +27,8 @@
   <parent>
     <groupId>com.google.appengine</groupId>
     <artifactId>applications</artifactId>
-    <version>2.0.6-SNAPSHOT</version>
+    <version>2.0.14-SNAPSHOT</version>
   </parent>
-
-    <prerequisites>
-        <maven>3.1.0</maven>
-    </prerequisites>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -45,6 +41,7 @@
 
         <appengine.target.version>${project.version}</appengine.target.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <appengine.runtime.location>target/${project.artifactId}-${project.version}</appengine.runtime.location>
     </properties>
 
     <dependencies>
@@ -194,10 +191,10 @@
                 <version>1.0</version>
                 <executions>
                     <execution>
-                        <id>rename-file</id>
+                        <id>copy-file</id>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>rename</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
                               <fileSets>
@@ -221,7 +218,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-                <version>2.6</version>
+                <version>3.3.2</version>
                 <configuration>
                     <archiveClasses>true</archiveClasses>
                     <webResources>
@@ -253,6 +250,26 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-enforcer-plugin</artifactId>
+              <version>3.1.0</version>
+              <executions>
+                <execution>
+                  <id>enforce-maven</id>
+                  <goals>
+                    <goal>enforce</goal>
+                  </goals>
+                  <configuration>
+                    <rules>
+                      <requireMavenVersion>
+                        <version>3.1.0</version>
+                      </requireMavenVersion>
+                    </rules>
+                  </configuration>
+                </execution>
+              </executions>
             </plugin>
         </plugins>
     </build>
